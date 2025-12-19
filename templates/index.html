@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroVision - Smart Farming</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="glass-header">
+            <div class="logo-section">
+                <div class="logo-circle">
+                    <i data-lucide="sprout" class="brand-icon"></i>
+                </div>
+                <div>
+                    <h1>AGROVISION</h1>
+                    <span class="subtitle">INTELLIGENT DRONE MONITORING</span>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="label">GPS</span>
+                        <span class="value success">LOCKED (12)</span>
+                    </div>
+                </div>
+
+                <!-- Weather Widget -->
+                <div class="weather-widget glass-panel">
+                    <i data-lucide="cloud-sun" class="weather-icon"></i>
+                    <div>
+                        <span class="temp" id="val-temp">--°C</span>
+                        <span class="wind" id="val-wind">-- km/h</span>
+                    </div>
+                </div>
+
+                <!-- Voice Toggle -->
+                <button class="icon-btn" id="btn-voice-toggle" style="margin-right: 1rem;" title="Mute/Unmute AI">
+                    <i data-lucide="mic"></i>
+                </button>
+
+                <div class="notification-wrapper">
+                    <button class="icon-btn" id="btn-notif">
+                        <i data-lucide="bell"></i>
+                        <span class="badge" id="notif-badge">0</span>
+                    </button>
+                    <!-- Notification Dropdown -->
+                    <div class="notif-dropdown hidden" id="notif-panel">
+                        <div class="notif-header">
+                            <h3>NOTIFICATIONS</h3>
+                            <div class="tabs">
+                                <button class="tab-btn active" data-tab="live">LIVE</button>
+                                <button class="tab-btn" data-tab="daily">DAILY</button>
+                            </div>
+                        </div>
+                        <div class="notif-body">
+                            <ul id="notif-list-live" class="notif-list">
+                                <!-- Live Items -->
+                            </ul>
+                            <ul id="notif-list-daily" class="notif-list hidden">
+                                <li class="daily-summary-item">
+                                    <span class="day-label">TODAY</span>
+                                    <div class="stat-row">
+                                        <span>Humus Found:</span>
+                                        <strong>12 Locations</strong>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Flight Time:</span>
+                                        <strong>4h 20m</strong>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="time-display" id="clock">00:00</div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <main class="dashboard-grid">
+
+            <!-- LEFT: Map View -->
+            <section class="map-panel glass-panel">
+                <div id="main-map"></div>
+
+                <!-- Map Controls Overlay -->
+                <div class="map-controls-overlay">
+                    <button id="btn-auto-lock" class="map-float-btn active" title="Toggle Auto Lock">
+                        <i data-lucide="crosshair"></i>
+                        <span>LOCKED</span>
+                    </button>
+                </div>
+
+                <!-- Map Overlays -->
+                <div class="map-overlay-info">
+                    <div>LAT: <span id="val-lat">--</span></div>
+                    <div>LON: <span id="val-lon">--</span></div>
+                </div>
+            </section>
+
+            <!-- RIGHT: Telemetry & Controls -->
+            <aside class="sidebar-panel">
+
+                <!-- Camera / Vision Placeholder -->
+                <div class="glass-panel video-feed">
+                    <div class="feed-header">
+                        <i data-lucide="camera"></i> FPV FEED
+                        <span class="rec-dot"></span>
+                    </div>
+                    <div class="feed-content">
+                        <div class="placeholder-grid"></div>
+                        <div class="ai-overlay-mock">
+                            <div class="bbox">HUMUS 89%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flight Gauges -->
+                <div class="glass-panel telemetry-grid">
+                    <div class="metric-card">
+                        <span class="label">ALTITUDE</span>
+                        <div class="value-large"><span id="val-alt">0</span><small>m</small></div>
+                        <div class="bar-container">
+                            <div class="bar-fill" id="bar-alt" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="label">SPEED</span>
+                        <div class="value-large"><span id="val-speed">0</span><small>m/s</small></div>
+                        <div class="bar-container">
+                            <div class="bar-fill" id="bar-speed" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="label">BATTERY</span>
+                        <div class="value-large"><span id="val-bat">100</span><small>%</small></div>
+                        <div class="bar-container">
+                            <div class="bar-fill success" id="bar-bat" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="glass-panel control-section">
+                    <h3>MISSION CONTROLS</h3>
+                    <div class="switch-row">
+                        <span>SEED SPREADER</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="btn-spreader">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-row">
+                        <span>AUTO PILOT</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button class="action-btn danger">EMERGENCY RETURN</button>
+                </div>
+
+                <!-- Event Log -->
+                <div class="glass-panel log-section">
+                    <div class="log-header-row">
+                        <h3>DETECTION LOG</h3>
+                        <button id="btn-export" class="sm-btn" title="Download Report">
+                            <i data-lucide="download"></i> CSV
+                        </button>
+                    </div>
+                    <ul id="detection-log" class="log-list">
+                        <!-- Items injected by JS -->
+                    </ul>
+                </div>
+
+            </aside>
+        </main>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="mission-modal" class="custom-modal hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <i data-lucide="crosshair" class="modal-icon"></i>
+                <h3>INITIATE MISSION</h3>
+            </div>
+            <div class="modal-body">
+                <p>Deploy drone to target coordinates?</p>
+                <div class="coord-display">
+                    <div>LAT: <span id="modal-lat">--</span></div>
+                    <div>LON: <span id="modal-lon">--</span></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" id="btn-cancel-mission">ABORT</button>
+                <button class="modal-btn confirm" id="btn-confirm-mission">ENGAGE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
